@@ -4,6 +4,7 @@ import android.content.SharedPreferences;
 import android.graphics.Color;
 import android.os.Build;
 import android.preference.PreferenceManager;
+import android.support.v4.widget.SwipeRefreshLayout;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.view.LayoutInflater;
@@ -30,7 +31,8 @@ import okhttp3.Callback;
 import okhttp3.Response;
 
 public class WeatherActivity extends AppCompatActivity {
-
+    public SwipeRefreshLayout mSwipeRefreshLayout;
+    private String cityName;
     private ScrollView Weatherlayout;
     private TextView Title_city;
     private TextView mTitlie_updatetime;
@@ -47,13 +49,14 @@ public class WeatherActivity extends AppCompatActivity {
     private ImageView mBaxkgroud_imagine;
     private LinearLayout mHourdailyforecast;
 
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
 
 
         /**
-         * 背景图和状态融合到一起
+         * 背景图和状态图融合到一起
          */
 
         if (Build.VERSION.SDK_INT >= 21) {
@@ -82,6 +85,12 @@ public class WeatherActivity extends AppCompatActivity {
         //        mCar_wash_text = (TextView) findViewById(R.id.car_wash_text);
         //        mSport_text = (TextView) findViewById(R.id.sport_text);
 
+        /**
+         * 下拉刷新...
+         */
+        mSwipeRefreshLayout = (SwipeRefreshLayout) findViewById(R.id.updateWeather);
+        mSwipeRefreshLayout.setColorSchemeResources(R.color.colorPrimary);
+
         SharedPreferences preferences = PreferenceManager.getDefaultSharedPreferences(this);
 
 
@@ -96,12 +105,20 @@ public class WeatherActivity extends AppCompatActivity {
 
         if (weatherString != null) {
             AllData weather = AddressJsontoJava.handleWeatherResponse(weatherString);
+            cityName = weather.allweather.getCity();
             showWeatherInfo(weather);
         } else {
-            String countyName = getIntent().getStringExtra("countyName");
+            cityName = getIntent().getStringExtra("countyName");
             Weatherlayout.setVisibility(View.INVISIBLE);
-            requestWeather(countyName);
+            requestWeather(cityName);
         }
+
+        mSwipeRefreshLayout.setOnRefreshListener(new SwipeRefreshLayout.OnRefreshListener() {
+            @Override
+            public void onRefresh() {
+                requestWeather(cityName);
+            }
+        });
     }
 
     /**
@@ -123,6 +140,7 @@ public class WeatherActivity extends AppCompatActivity {
                     @Override
                     public void run() {
                         Toast.makeText(WeatherActivity.this, "获取信息失败122", Toast.LENGTH_SHORT).show();
+                        mSwipeRefreshLayout.setRefreshing(false);
                     }
                 });
             }
@@ -144,6 +162,7 @@ public class WeatherActivity extends AppCompatActivity {
                         } else {
                             Toast.makeText(WeatherActivity.this, "获取天气信息失败233", Toast.LENGTH_SHORT).show();
                         }
+                        mSwipeRefreshLayout.setRefreshing(false);
                     }
                 });
             }
@@ -169,16 +188,21 @@ public class WeatherActivity extends AppCompatActivity {
         mDegretext.setText(degree);
         mWeatherInfo_text.setText(weatherInfo);
 
-
         /**
-         * 显示未来几天天气信息
+         * 清空layout容器中的的views视图
+         *
+         * 解决 重新加载 之后数据叠加问题
          */
-
         mForecast_linearlayout.removeAllViews();
+        mHourdailyforecast.removeAllViews();
+        mLife_text.removeAllViews();
+
 
         mAqi_text.setText(weather.allweather.aqi.getAqi());
         mPm_25.setText(weather.allweather.aqi.getPm2_524());
-
+        /**
+         * 显示未来几天天气信息
+         */
         for (HourForecast hourForecast : weather.allweather.hourForecastList) {
             View view = LayoutInflater.from(this).inflate(R.layout.dailyforecastlayout,
                     mHourdailyforecast, false);
