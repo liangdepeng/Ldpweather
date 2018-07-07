@@ -10,7 +10,7 @@ import org.litepal.crud.DataSupport;
  */
 public class Province extends DataSupport{
 
-    /** 相关json数据格式
+    /**
      * id : 1
      * name : 北京
      */

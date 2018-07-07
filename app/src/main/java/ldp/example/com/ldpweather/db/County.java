@@ -8,7 +8,6 @@ import org.litepal.crud.DataSupport;
 public class County extends DataSupport{
 
     /**
-     * 相关json数据格式
      * id : 267
      * name : 成都
      */

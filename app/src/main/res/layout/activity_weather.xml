@@ -25,15 +25,19 @@
             android:orientation="vertical"
             android:fitsSystemWindows="true">
 
+
             <include layout="@layout/title"/>
 
             <include layout="@layout/now"/>
+
+            <include layout="@layout/dailyforecasttitlelayout"/>
 
             <include layout="@layout/forecast"/>
 
             <include layout="@layout/aqi" />
 
             <include layout="@layout/suggestions"/>
+
 
         </LinearLayout>
     </ScrollView>

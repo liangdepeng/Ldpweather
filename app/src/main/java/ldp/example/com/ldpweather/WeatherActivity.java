@@ -21,6 +21,7 @@ import java.io.IOException;
 
 import ldp.example.com.ldpweather.gsonJavaBean.AllData;
 import ldp.example.com.ldpweather.gsonJavaBean.Forecastsevendays;
+import ldp.example.com.ldpweather.gsonJavaBean.HourForecast;
 import ldp.example.com.ldpweather.gsonJavaBean.Suggestions;
 import ldp.example.com.ldpweather.util.AddressJsontoJava;
 import ldp.example.com.ldpweather.util.Httputil;
@@ -44,6 +45,7 @@ public class WeatherActivity extends AppCompatActivity {
     private LinearLayout mLife_text;
     private ImageView mImageView;
     private ImageView mBaxkgroud_imagine;
+    private LinearLayout mHourdailyforecast;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -54,9 +56,9 @@ public class WeatherActivity extends AppCompatActivity {
          * 背景图和状态融合到一起
          */
 
-        if (Build.VERSION.SDK_INT>=21){
+        if (Build.VERSION.SDK_INT >= 21) {
             View decorView = getWindow().getDecorView();
-            decorView.setSystemUiVisibility(View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN|View.SYSTEM_UI_FLAG_LAYOUT_STABLE);
+            decorView.setSystemUiVisibility(View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN | View.SYSTEM_UI_FLAG_LAYOUT_STABLE);
             getWindow().setStatusBarColor(Color.TRANSPARENT);
         }
         setContentView(R.layout.activity_weather);
@@ -72,6 +74,7 @@ public class WeatherActivity extends AppCompatActivity {
         mWeatherInfo_text = (TextView) findViewById(R.id.weather_info_text);
         mForecast_linearlayout = (LinearLayout) findViewById(R.id.forecast_layout);
         mLife_text = (LinearLayout) findViewById(R.id.life_text);
+        mHourdailyforecast = (LinearLayout) findViewById(R.id.dailyforcasthour);
         mAqi_text = (TextView) findViewById(R.id.aqi_text);
         mPm_25 = (TextView) findViewById(R.id.pm25_text);
         mBaxkgroud_imagine = (ImageView) findViewById(R.id.back_imagine);
@@ -176,6 +179,19 @@ public class WeatherActivity extends AppCompatActivity {
         mAqi_text.setText(weather.allweather.aqi.getAqi());
         mPm_25.setText(weather.allweather.aqi.getPm2_524());
 
+        for (HourForecast hourForecast : weather.allweather.hourForecastList) {
+            View view = LayoutInflater.from(this).inflate(R.layout.dailyforecastlayout,
+                    mHourdailyforecast, false);
+            TextView dailyforecastTime = (TextView) view.findViewById(R.id.dailyforecastTime);
+            TextView dailyforecastWeather = (TextView) view.findViewById(R.id.dailyforecastWeather);
+            TextView dailyforecastTemp = (TextView) view.findViewById(R.id.dailyforecastTemp);
+
+            dailyforecastTime.setText(hourForecast.getTime());
+            dailyforecastWeather.setText(hourForecast.getWeather());
+            dailyforecastTemp.setText(hourForecast.getTemp() + "°");
+            mHourdailyforecast.addView(view);
+        }
+
         for (Forecastsevendays forecast : weather.allweather.forecastsevendaysList) {
             View view = LayoutInflater.from(this).inflate(R.layout.forecast_item,
                     mForecast_linearlayout, false);
@@ -184,9 +200,16 @@ public class WeatherActivity extends AppCompatActivity {
             TextView maxText = (TextView) view.findViewById(R.id.max_text);
             TextView minText = (TextView) view.findViewById(R.id.min_text);
             dateText.setText(forecast.getDate());
-            infoText.setText(forecast.getDay().getWeather() + "转" + forecast.getNight().getWeather());
-            maxText.setText(forecast.getNight().getTemplow());
-            minText.setText(forecast.getDay().getTemphigh());
+            /**
+             * 判断白天和夜间天气是否相同，如果相同，则只显示一个即可
+             */
+            if ((forecast.getNight().getWeather()).equals(forecast.getDay().getWeather())){
+                infoText.setText(forecast.getDay().getWeather());
+            }else {
+                infoText.setText(forecast.getDay().getWeather() + "转" + forecast.getNight().getWeather());
+            }
+            maxText.setText(forecast.getNight().getTemplow() + "°");
+            minText.setText(forecast.getDay().getTemphigh() + "°");
             mForecast_linearlayout.addView(view);
         }
 
@@ -212,8 +235,7 @@ public class WeatherActivity extends AppCompatActivity {
     }
 
     /**
-     *   加载网络图片......
-     *
+     * 加载网络图片......
      */
 
     private void loadBingyinPic() {
