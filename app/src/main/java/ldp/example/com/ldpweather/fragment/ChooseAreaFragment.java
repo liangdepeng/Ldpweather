@@ -29,6 +29,7 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
+import ldp.example.com.ldpweather.MainActivity;
 import ldp.example.com.ldpweather.R;
 import ldp.example.com.ldpweather.WeatherActivity;
 import ldp.example.com.ldpweather.db.City;
@@ -104,16 +105,24 @@ public class ChooseAreaFragment extends Fragment {
                 } else if (currentLevel == LEVEL_CITY) {
                     selectCity = mCityList.get(position);
                     queryCounties();
-
+                }
                     /**
                      * 查询到相应地址，去查询天气，传递地址名称
                      */
-                }else if (currentLevel == LEVEL_COUNTY){
+                else if (currentLevel == LEVEL_COUNTY) {
                     String countyName = mCountyList.get(position).getCountyName();
-                    Intent intent = new Intent(getActivity(), WeatherActivity.class);
-                    intent.putExtra("countyName",countyName);
-                    startActivity(intent);
-                    getActivity().finish();
+
+                    if (getActivity() instanceof MainActivity) {
+                        Intent intent = new Intent(getActivity(), WeatherActivity.class);
+                        intent.putExtra("countyName", countyName);
+                        startActivity(intent);
+                        getActivity().finish();
+                    }else if (getActivity() instanceof WeatherActivity){
+                        WeatherActivity activity = (WeatherActivity) getActivity();
+                        activity.mDrawerLayout.closeDrawers();
+                        activity.mSwipeRefreshLayout.setRefreshing(true);
+                        activity.requestWeather(countyName);
+                    }
                 }
             }
         });

@@ -1,14 +1,18 @@
 package ldp.example.com.ldpweather;
 
+import android.content.Intent;
 import android.content.SharedPreferences;
 import android.graphics.Color;
 import android.os.Build;
 import android.preference.PreferenceManager;
+import android.support.v4.view.GravityCompat;
+import android.support.v4.widget.DrawerLayout;
 import android.support.v4.widget.SwipeRefreshLayout;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.view.LayoutInflater;
 import android.view.View;
+import android.widget.Button;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.ScrollView;
@@ -24,6 +28,7 @@ import ldp.example.com.ldpweather.gsonJavaBean.AllData;
 import ldp.example.com.ldpweather.gsonJavaBean.Forecastsevendays;
 import ldp.example.com.ldpweather.gsonJavaBean.HourForecast;
 import ldp.example.com.ldpweather.gsonJavaBean.Suggestions;
+import ldp.example.com.ldpweather.service.AutoUpdateservice;
 import ldp.example.com.ldpweather.util.AddressJsontoJava;
 import ldp.example.com.ldpweather.util.Httputil;
 import okhttp3.Call;
@@ -48,12 +53,13 @@ public class WeatherActivity extends AppCompatActivity {
     private ImageView mImageView;
     private ImageView mBaxkgroud_imagine;
     private LinearLayout mHourdailyforecast;
+    public DrawerLayout mDrawerLayout;
+    private Button mChangecity_btn;
 
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-
 
         /**
          * 背景图和状态图融合到一起
@@ -81,9 +87,18 @@ public class WeatherActivity extends AppCompatActivity {
         mAqi_text = (TextView) findViewById(R.id.aqi_text);
         mPm_25 = (TextView) findViewById(R.id.pm25_text);
         mBaxkgroud_imagine = (ImageView) findViewById(R.id.back_imagine);
-        //        mComfort_text = (TextView) findViewById(R.id.comfort_text);
-        //        mCar_wash_text = (TextView) findViewById(R.id.car_wash_text);
-        //        mSport_text = (TextView) findViewById(R.id.sport_text);
+        mDrawerLayout = (DrawerLayout)findViewById(R.id.changecity_layout);
+        mChangecity_btn = (Button) findViewById(R.id.changecity_btn);
+
+        /**
+         * 滑动菜单监听器
+         */
+        mChangecity_btn.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                mDrawerLayout.openDrawer(GravityCompat.START);
+            }
+        });
 
         /**
          * 下拉刷新...
@@ -92,7 +107,6 @@ public class WeatherActivity extends AppCompatActivity {
         mSwipeRefreshLayout.setColorSchemeResources(R.color.colorPrimary);
 
         SharedPreferences preferences = PreferenceManager.getDefaultSharedPreferences(this);
-
 
         String imagine_backgroud = preferences.getString("bing_pic", null);
         if (imagine_backgroud != null) {
@@ -122,11 +136,11 @@ public class WeatherActivity extends AppCompatActivity {
     }
 
     /**
-     * 根据天气id请求城市天气信息
+     * 根据id请求城市天气信息
      *
      * @param countyName address
      */
-    private void requestWeather(final String countyName) {
+    public void requestWeather(final String countyName) {
 
         //        String weather_url = "https://free-api.heweather.com/s6/weather?location="
         //                + wetherId + "&7f38cf5c1c614163991cfecccfa65d0d";
@@ -168,7 +182,6 @@ public class WeatherActivity extends AppCompatActivity {
             }
         });
         loadBingyinPic();
-
     }
 
     /**
@@ -197,11 +210,11 @@ public class WeatherActivity extends AppCompatActivity {
         mHourdailyforecast.removeAllViews();
         mLife_text.removeAllViews();
 
-
         mAqi_text.setText(weather.allweather.aqi.getAqi());
         mPm_25.setText(weather.allweather.aqi.getPm2_524());
+
         /**
-         * 显示未来几天天气信息
+         * 显示未来7天天气信息
          */
         for (HourForecast hourForecast : weather.allweather.hourForecastList) {
             View view = LayoutInflater.from(this).inflate(R.layout.dailyforecastlayout,
@@ -209,13 +222,14 @@ public class WeatherActivity extends AppCompatActivity {
             TextView dailyforecastTime = (TextView) view.findViewById(R.id.dailyforecastTime);
             TextView dailyforecastWeather = (TextView) view.findViewById(R.id.dailyforecastWeather);
             TextView dailyforecastTemp = (TextView) view.findViewById(R.id.dailyforecastTemp);
-
             dailyforecastTime.setText(hourForecast.getTime());
             dailyforecastWeather.setText(hourForecast.getWeather());
             dailyforecastTemp.setText(hourForecast.getTemp() + "°");
             mHourdailyforecast.addView(view);
         }
-
+        /**
+         * 显示24h天气信息
+         */
         for (Forecastsevendays forecast : weather.allweather.forecastsevendaysList) {
             View view = LayoutInflater.from(this).inflate(R.layout.forecast_item,
                     mForecast_linearlayout, false);
@@ -237,7 +251,9 @@ public class WeatherActivity extends AppCompatActivity {
             mForecast_linearlayout.addView(view);
         }
 
-
+        /**
+         * 显示生活建议
+         */
         for (Suggestions lifestyle : weather.allweather.suggestionslist) {
             View view = LayoutInflater.from(this).inflate(R.layout.lifestylelayout,
                     mLife_text, false);
@@ -247,21 +263,14 @@ public class WeatherActivity extends AppCompatActivity {
             lifestyle_text.setText(lifestyle.getDetail());
             mLife_text.addView(view);
         }
-
-        //        String comfort = "舒适度" + weather.Suggestion.comfort;
-        //        String CarWash = "洗车指数" + weather.Suggestion.carwash;
-        //        String sport = "运动指数" + weather.Suggestion.sport;
-        //        mComfort_text.setText(comfort);
-        //        mCar_wash_text.setText(CarWash);
-        //        mSport_text.setText(sport);
-
         Weatherlayout.setVisibility(View.VISIBLE);
+        Intent intent = new Intent(this, AutoUpdateservice.class);
+        startService(intent);
     }
 
     /**
      * 加载网络图片......
      */
-
     private void loadBingyinPic() {
         String resquestBingyinPic = "http://guolin.tech/api/bing_pic";
         Httputil.sendOkhttpRequest(resquestBingyinPic, new Callback() {
