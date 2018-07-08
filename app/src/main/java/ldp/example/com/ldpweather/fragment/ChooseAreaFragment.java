@@ -112,6 +112,9 @@ public class ChooseAreaFragment extends Fragment {
                 else if (currentLevel == LEVEL_COUNTY) {
                     String countyName = mCountyList.get(position).getCountyName();
 
+                    /**
+                     * instanceof 关键字 可以判断 一个对象是否属于某个类的实例
+                     */
                     if (getActivity() instanceof MainActivity) {
                         Intent intent = new Intent(getActivity(), WeatherActivity.class);
                         intent.putExtra("countyName", countyName);

@@ -46,15 +46,13 @@ public class WeatherActivity extends AppCompatActivity {
     private LinearLayout mForecast_linearlayout;
     private TextView mAqi_text;
     private TextView mPm_25;
-    //    private TextView mComfort_text;
-    //    private TextView mCar_wash_text;
-    //    private TextView mSport_text;
     private LinearLayout mLife_text;
     private ImageView mImageView;
     private ImageView mBaxkgroud_imagine;
     private LinearLayout mHourdailyforecast;
     public DrawerLayout mDrawerLayout;
     private Button mChangecity_btn;
+    private Button mSetting_btn;
 
 
     @Override
@@ -89,6 +87,14 @@ public class WeatherActivity extends AppCompatActivity {
         mBaxkgroud_imagine = (ImageView) findViewById(R.id.back_imagine);
         mDrawerLayout = (DrawerLayout)findViewById(R.id.changecity_layout);
         mChangecity_btn = (Button) findViewById(R.id.changecity_btn);
+        mSetting_btn = (Button) findViewById(R.id.setting_btn);
+
+        mSetting_btn.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                Toast.makeText(WeatherActivity.this,"正在努力开发中...",Toast.LENGTH_LONG).show();
+            }
+        });
 
         /**
          * 滑动菜单监听器
