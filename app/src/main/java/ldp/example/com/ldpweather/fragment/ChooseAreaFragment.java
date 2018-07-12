@@ -76,7 +76,7 @@ public class ChooseAreaFragment extends Fragment {
     private Province selectProvince;
     private City selectCity;
     private County selectCounty;
-
+    private String mCountyName;
 
 
     @Override
@@ -110,21 +110,21 @@ public class ChooseAreaFragment extends Fragment {
                      * 查询到相应地址，去查询天气，传递地址名称
                      */
                 else if (currentLevel == LEVEL_COUNTY) {
-                    String countyName = mCountyList.get(position).getCountyName();
-
+                    mCountyName = mCountyList.get(position).getCountyName();
+                    System.out.println("选择时 ： " + mCountyName);
                     /**
                      * instanceof 关键字 可以判断 一个对象是否属于某个类的实例
                      */
                     if (getActivity() instanceof MainActivity) {
                         Intent intent = new Intent(getActivity(), WeatherActivity.class);
-                        intent.putExtra("countyName", countyName);
+                        intent.putExtra("countyName", mCountyName);
                         startActivity(intent);
                         getActivity().finish();
                     }else if (getActivity() instanceof WeatherActivity){
                         WeatherActivity activity = (WeatherActivity) getActivity();
                         activity.mDrawerLayout.closeDrawers();
                         activity.mSwipeRefreshLayout.setRefreshing(true);
-                        activity.requestWeather(countyName);
+                        activity.requestWeather(mCountyName);
                     }
                 }
             }

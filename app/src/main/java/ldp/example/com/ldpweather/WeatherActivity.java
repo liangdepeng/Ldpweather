@@ -53,6 +53,8 @@ public class WeatherActivity extends AppCompatActivity {
     public DrawerLayout mDrawerLayout;
     private Button mChangecity_btn;
     private Button mSetting_btn;
+    private String mcityName;
+    private String mCityNames;
 
 
     @Override
@@ -133,10 +135,15 @@ public class WeatherActivity extends AppCompatActivity {
             requestWeather(cityName);
         }
 
-        mSwipeRefreshLayout.setOnRefreshListener(new SwipeRefreshLayout.OnRefreshListener() {
+        mSwipeRefreshLayout.setOnRefreshListener(
+                new SwipeRefreshLayout.OnRefreshListener() {
             @Override
             public void onRefresh() {
-                requestWeather(cityName);
+                /**
+                 *刷新当前页面城市天气
+                 */
+                System.out.println("刷新时 ： " + mCityNames);
+                requestWeather(mCityNames);
             }
         });
     }
@@ -167,7 +174,7 @@ public class WeatherActivity extends AppCompatActivity {
 
             @Override
             public void onResponse(Call call, Response response) throws IOException {
-                System.out.println("1111111");
+                System.out.println("获取json数据");
                 final String responseText = response.body().string();
                 final AllData weather = AddressJsontoJava.handleWeatherResponse(responseText);
                 System.out.println(responseText);
@@ -197,12 +204,12 @@ public class WeatherActivity extends AppCompatActivity {
      */
 
     public void showWeatherInfo(AllData weather) {
-        String cityName = weather.allweather.getCity();
+        mCityNames = weather.allweather.getCity();
         String update_time = "";
         String degree = weather.allweather.getTemp() + "℃";
         String weatherInfo = weather.allweather.getWeather();
 
-        Title_city.setText(cityName);
+        Title_city.setText(mCityNames);
         mTitlie_updatetime.setText(update_time);
         mDegretext.setText(degree);
         mWeatherInfo_text.setText(weatherInfo);
@@ -273,6 +280,7 @@ public class WeatherActivity extends AppCompatActivity {
         Intent intent = new Intent(this, AutoUpdateservice.class);
         startService(intent);
     }
+
 
     /**
      * 加载网络图片......
