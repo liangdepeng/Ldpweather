@@ -4,7 +4,7 @@ package ldp.example.com.ldpweather.db;
 import org.litepal.crud.DataSupport;
 
 /**
- *数据库 各省份 市 的表
+ *各省份 市 的表
  */
 public class City extends DataSupport{
     private int id;

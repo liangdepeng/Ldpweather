@@ -12,6 +12,7 @@ import android.preference.PreferenceManager;
 import java.io.IOException;
 
 import ldp.example.com.ldpweather.gsonJavaBean.AllData;
+import ldp.example.com.ldpweather.javaBean.HeWeather6Bean;
 import ldp.example.com.ldpweather.util.AddressJsontoJava;
 import ldp.example.com.ldpweather.util.Httputil;
 import okhttp3.Call;
@@ -46,10 +47,10 @@ public class AutoUpdateservice extends Service {
         SharedPreferences preferences = PreferenceManager.getDefaultSharedPreferences(this);
         String weatherString = preferences.getString("weather",null);
         if (weatherString!=null){
-            AllData weather = AddressJsontoJava.handleWeatherResponse(weatherString);
-            String countyName = weather.allweather.getCity();
+            HeWeather6Bean weather = AddressJsontoJava.handleWeatherResponse(weatherString);
+            String countyName = weather.getBasic().getLocation();
 
-            String weather_url = "http://api.jisuapi.com/weather/query?appkey=2416dc7648af35e6&city=" + countyName;
+            String weather_url = "https://free-api.heweather.com/s6/weather?location=" + countyName + "&key=e213b21d1a25491ba625ce3d3d5dfc2d";
             Httputil.sendOkhttpRequest(weather_url, new Callback() {
                 @Override
                 public void onFailure(Call call, IOException e) {
@@ -58,7 +59,7 @@ public class AutoUpdateservice extends Service {
                 @Override
                 public void onResponse(Call call, Response response) throws IOException {
                     String responseText = response.body().string();
-                    AllData weather = AddressJsontoJava.handleWeatherResponse(responseText);
+                    HeWeather6Bean weather = AddressJsontoJava.handleWeatherResponse(responseText);
                     if (weather!=null&&"ok".equals(weather.getStatus())){
                         SharedPreferences.Editor editor = PreferenceManager
                                 .getDefaultSharedPreferences(AutoUpdateservice.this)

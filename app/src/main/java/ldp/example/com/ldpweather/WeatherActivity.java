@@ -10,6 +10,7 @@ import android.support.v4.widget.DrawerLayout;
 import android.support.v4.widget.SwipeRefreshLayout;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.widget.Button;
@@ -28,6 +29,9 @@ import ldp.example.com.ldpweather.gsonJavaBean.AllData;
 import ldp.example.com.ldpweather.gsonJavaBean.Forecastsevendays;
 import ldp.example.com.ldpweather.gsonJavaBean.HourForecast;
 import ldp.example.com.ldpweather.gsonJavaBean.Suggestions;
+import ldp.example.com.ldpweather.javaBean.DailyForecastBean;
+import ldp.example.com.ldpweather.javaBean.HeWeather6Bean;
+import ldp.example.com.ldpweather.javaBean.LifestyleBean;
 import ldp.example.com.ldpweather.service.AutoUpdateservice;
 import ldp.example.com.ldpweather.util.AddressJsontoJava;
 import ldp.example.com.ldpweather.util.Httputil;
@@ -112,7 +116,7 @@ public class WeatherActivity extends AppCompatActivity {
          * 下拉刷新...
          */
         mSwipeRefreshLayout = (SwipeRefreshLayout) findViewById(R.id.updateWeather);
-        mSwipeRefreshLayout.setColorSchemeResources(R.color.colorPrimary);
+        mSwipeRefreshLayout.setColorSchemeResources(R.color.colorPrimaryDark);
 
         SharedPreferences preferences = PreferenceManager.getDefaultSharedPreferences(this);
 
@@ -126,8 +130,8 @@ public class WeatherActivity extends AppCompatActivity {
         String weatherString = preferences.getString("weather", null);
 
         if (weatherString != null) {
-            AllData weather = AddressJsontoJava.handleWeatherResponse(weatherString);
-            cityName = weather.allweather.getCity();
+            HeWeather6Bean weather = AddressJsontoJava.handleWeatherResponse(weatherString);
+            cityName = weather.getBasic().getLocation();
             showWeatherInfo(weather);
         } else {
             cityName = getIntent().getStringExtra("countyName");
@@ -158,7 +162,7 @@ public class WeatherActivity extends AppCompatActivity {
         //        String weather_url = "https://free-api.heweather.com/s6/weather?location="
         //                + wetherId + "&7f38cf5c1c614163991cfecccfa65d0d";
 
-        String weather_url = "http://api.jisuapi.com/weather/query?appkey=2416dc7648af35e6&city=" + countyName;
+        String weather_url =  "https://free-api.heweather.com/s6/weather?location=" + countyName + "&key=e213b21d1a25491ba625ce3d3d5dfc2d";
 
         Httputil.sendOkhttpRequest(weather_url, new Callback() {
             @Override
@@ -176,12 +180,13 @@ public class WeatherActivity extends AppCompatActivity {
             public void onResponse(Call call, Response response) throws IOException {
                 System.out.println("获取json数据");
                 final String responseText = response.body().string();
-                final AllData weather = AddressJsontoJava.handleWeatherResponse(responseText);
+                final HeWeather6Bean weather = AddressJsontoJava.handleWeatherResponse(responseText);
                 System.out.println(responseText);
                 runOnUiThread(new Runnable() {
                     @Override
                     public void run() {
-                        if (weather != null && "ok".equals(weather.msg)) {
+                        if (weather != null && "ok".equals(weather.getStatus())) {
+                            Log.d("x",weather.getStatus());
                             SharedPreferences.Editor editor = PreferenceManager.getDefaultSharedPreferences(WeatherActivity.this).edit();
                             editor.putString("weather", responseText);
                             editor.apply();
@@ -203,11 +208,11 @@ public class WeatherActivity extends AppCompatActivity {
      * @param weather
      */
 
-    public void showWeatherInfo(AllData weather) {
-        mCityNames = weather.allweather.getCity();
+    public void showWeatherInfo(HeWeather6Bean weather) {
+        mCityNames = weather.getBasic().getLocation();
         String update_time = "";
-        String degree = weather.allweather.getTemp() + "℃";
-        String weatherInfo = weather.allweather.getWeather();
+        String degree = weather.getNow().getTmp() + "℃";
+        String weatherInfo = weather.getNow().getCond_txt();
 
         Title_city.setText(mCityNames);
         mTitlie_updatetime.setText(update_time);
@@ -223,27 +228,27 @@ public class WeatherActivity extends AppCompatActivity {
         mHourdailyforecast.removeAllViews();
         mLife_text.removeAllViews();
 
-        mAqi_text.setText(weather.allweather.aqi.getAqi());
-        mPm_25.setText(weather.allweather.aqi.getPm2_524());
+        mAqi_text.setText(weather.getNow().getPcpn());
+        mPm_25.setText(weather.getNow().getWind_dir());
 
+//        /**
+//         * 显示未来3天天气信息
+//         */
+//        for (HourForecast hourForecast : weather.allweather.hourForecastList) {
+//            View view = LayoutInflater.from(this).inflate(R.layout.dailyforecastlayout,
+//                    mHourdailyforecast, false);
+//            TextView dailyforecastTime = (TextView) view.findViewById(R.id.dailyforecastTime);
+//            TextView dailyforecastWeather = (TextView) view.findViewById(R.id.dailyforecastWeather);
+//            TextView dailyforecastTemp = (TextView) view.findViewById(R.id.dailyforecastTemp);
+//            dailyforecastTime.setText(hourForecast.getTime());
+//            dailyforecastWeather.setText(hourForecast.getWeather());
+//            dailyforecastTemp.setText(hourForecast.getTemp() + "°");
+//            mHourdailyforecast.addView(view);
+//        }
         /**
-         * 显示未来7天天气信息
+         * 显示3天天气信息
          */
-        for (HourForecast hourForecast : weather.allweather.hourForecastList) {
-            View view = LayoutInflater.from(this).inflate(R.layout.dailyforecastlayout,
-                    mHourdailyforecast, false);
-            TextView dailyforecastTime = (TextView) view.findViewById(R.id.dailyforecastTime);
-            TextView dailyforecastWeather = (TextView) view.findViewById(R.id.dailyforecastWeather);
-            TextView dailyforecastTemp = (TextView) view.findViewById(R.id.dailyforecastTemp);
-            dailyforecastTime.setText(hourForecast.getTime());
-            dailyforecastWeather.setText(hourForecast.getWeather());
-            dailyforecastTemp.setText(hourForecast.getTemp() + "°");
-            mHourdailyforecast.addView(view);
-        }
-        /**
-         * 显示24h天气信息
-         */
-        for (Forecastsevendays forecast : weather.allweather.forecastsevendaysList) {
+        for (DailyForecastBean forecast : weather.getDaily_forecast()) {
             View view = LayoutInflater.from(this).inflate(R.layout.forecast_item,
                     mForecast_linearlayout, false);
             TextView dateText = (TextView) view.findViewById(R.id.date_text);
@@ -254,26 +259,26 @@ public class WeatherActivity extends AppCompatActivity {
             /**
              * 判断白天和夜间天气是否相同，如果相同，则只显示一个即可
              */
-            if ((forecast.getNight().getWeather()).equals(forecast.getDay().getWeather())){
-                infoText.setText(forecast.getDay().getWeather());
+            if ((forecast.getCond_code_d()).equals(forecast.getCond_code_n())){
+                infoText.setText(forecast.getCond_txt_n());
             }else {
-                infoText.setText(forecast.getDay().getWeather() + "转" + forecast.getNight().getWeather());
+                infoText.setText(forecast.getCond_txt_d() + "转" + forecast.getCond_txt_n());
             }
-            maxText.setText(forecast.getNight().getTemplow() + "°");
-            minText.setText(forecast.getDay().getTemphigh() + "°");
+            maxText.setText(forecast.getTmp_min()+ "°");
+            minText.setText(forecast.getTmp_max()+ "°");
             mForecast_linearlayout.addView(view);
         }
 
         /**
          * 显示生活建议
          */
-        for (Suggestions lifestyle : weather.allweather.suggestionslist) {
+        for (LifestyleBean lifestyle : weather.getLifestyle()) {
             View view = LayoutInflater.from(this).inflate(R.layout.lifestylelayout,
                     mLife_text, false);
             TextView lifestyle_tltle = (TextView) view.findViewById(R.id.lifestyle_title);
             TextView lifestyle_text = (TextView) view.findViewById(R.id.lifestyle_text);
-            lifestyle_tltle.setText(lifestyle.getIname());
-            lifestyle_text.setText(lifestyle.getDetail());
+            lifestyle_tltle.setText(chooseTitle(lifestyle.getType()));
+            lifestyle_text.setText(lifestyle.getTxt());
             mLife_text.addView(view);
         }
         Weatherlayout.setVisibility(View.VISIBLE);
@@ -310,5 +315,38 @@ public class WeatherActivity extends AppCompatActivity {
                 });
             }
         });
+    }
+
+    private String chooseTitle(String s){
+        String s2 = "";
+        switch (s){
+            default:
+                break;
+            case "comf":
+                s2="舒适度指数";
+                break;
+            case "drsg":
+                s2="穿衣指数";
+                break;
+            case "flu":
+                s2="感冒指数";
+                break;
+            case "sport":
+                s2="运动指数";
+                break;
+            case "trav":
+                s2="旅游指数";
+                break;
+            case "uv":
+                s2="紫外线指数";
+                break;
+            case "cw":
+                s2="洗车指数";
+                break;
+            case "air":
+                s2="空气污染扩散条件指数";
+                break;
+        }
+        return s2;
     }
 }

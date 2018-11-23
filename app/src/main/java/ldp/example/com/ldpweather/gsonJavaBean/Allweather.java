@@ -10,7 +10,7 @@ public class Allweather {
     @SerializedName("index")
     public List<Suggestions> suggestionslist;
 
-    @SerializedName("daily")
+    @SerializedName("daily_forecast")
     public List<Forecastsevendays> forecastsevendaysList;
 
     @SerializedName("aqi")

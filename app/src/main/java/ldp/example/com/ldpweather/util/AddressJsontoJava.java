@@ -7,12 +7,11 @@ import com.google.gson.Gson;
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
-import org.json.JSONStringer;
 
 import ldp.example.com.ldpweather.db.City;
 import ldp.example.com.ldpweather.db.County;
 import ldp.example.com.ldpweather.db.Province;
-import ldp.example.com.ldpweather.gsonJavaBean.AllData;
+import ldp.example.com.ldpweather.javaBean.HeWeather6Bean;
 
 /**
  * @author Adminstrator
@@ -86,22 +85,22 @@ public class AddressJsontoJava {
     /**
      * 解析JSON数据为weather实体类
      */
-//        public static AllData handleWeatherResponse(String response){
-//            try {
-//                AllData allData = new AllData();
-//                JSONObject jsonObject = new JSONObject(response);
-//                JSONArray jsonArray = jsonObject.getJSONArray("JSON");
-//                String weatherContent = jsonArray.getJSONObject(0).toString();
-//                return new Gson().fromJson(weatherContent,AllData.class);
-//            } catch (Exception e) {
-//                e.printStackTrace();
-//            }
-//            return null;
-//        }
+        public static HeWeather6Bean handleWeatherResponse(String response){
+            try {
+                HeWeather6Bean allData = new HeWeather6Bean();
+                JSONObject jsonObject = new JSONObject(response);
+                JSONArray jsonArray = jsonObject.getJSONArray("HeWeather6");
+                String weatherContent = jsonArray.getJSONObject(0).toString();
+                return new Gson().fromJson(weatherContent,HeWeather6Bean.class);
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+            return null;
+        }
 
 
-    public static AllData handleWeatherResponse(String response) {
-
-        return new Gson().fromJson(response,AllData.class);
-    }
+//    public static HeWeather6Bean handleWeatherResponse(String response) {
+//
+//        return new Gson().fromJson(response,HeWeather6Bean.class);
+//    }
 }
