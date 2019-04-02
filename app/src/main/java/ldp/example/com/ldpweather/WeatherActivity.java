@@ -320,8 +320,6 @@ public class WeatherActivity extends AppCompatActivity {
     private String chooseTitle(String s){
         String s2 = "";
         switch (s){
-            default:
-                break;
             case "comf":
                 s2="舒适度指数";
                 break;
@@ -345,6 +343,8 @@ public class WeatherActivity extends AppCompatActivity {
                 break;
             case "air":
                 s2="空气污染扩散条件指数";
+                break;
+            default:
                 break;
         }
         return s2;
