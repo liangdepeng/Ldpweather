@@ -5,10 +5,10 @@ import android.content.SharedPreferences;
 import android.graphics.Color;
 import android.os.Build;
 import android.preference.PreferenceManager;
-import android.support.v4.view.GravityCompat;
-import android.support.v4.widget.DrawerLayout;
-import android.support.v4.widget.SwipeRefreshLayout;
-import android.support.v7.app.AppCompatActivity;
+import androidx.core.view.GravityCompat;
+import androidx.drawerlayout.widget.DrawerLayout;
+import androidx.swiperefreshlayout.widget.SwipeRefreshLayout;
+import androidx.appcompat.app.AppCompatActivity;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.LayoutInflater;
@@ -25,10 +25,6 @@ import com.bumptech.glide.Glide;
 import java.io.IOException;
 
 
-import ldp.example.com.ldpweather.gsonJavaBean.AllData;
-import ldp.example.com.ldpweather.gsonJavaBean.Forecastsevendays;
-import ldp.example.com.ldpweather.gsonJavaBean.HourForecast;
-import ldp.example.com.ldpweather.gsonJavaBean.Suggestions;
 import ldp.example.com.ldpweather.javaBean.DailyForecastBean;
 import ldp.example.com.ldpweather.javaBean.HeWeather6Bean;
 import ldp.example.com.ldpweather.javaBean.LifestyleBean;

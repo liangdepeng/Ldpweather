@@ -1,16 +1,13 @@
 package ldp.example.com.ldpweather.fragment;
 
-import android.annotation.SuppressLint;
-import android.annotation.TargetApi;
-import android.app.DownloadManager;
-import android.app.Fragment;
 import android.app.ProgressDialog;
-import android.content.Context;
 import android.content.Intent;
 import android.os.Build;
 import android.os.Bundle;
-import android.support.annotation.Nullable;
-import android.support.annotation.RequiresApi;
+import androidx.annotation.Nullable;
+import androidx.annotation.RequiresApi;
+import androidx.fragment.app.Fragment;
+
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -22,8 +19,6 @@ import android.widget.TextView;
 import android.widget.Toast;
 
 import org.litepal.crud.DataSupport;
-import org.litepal.util.BaseUtility;
-import org.litepal.util.DBUtility;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -40,7 +35,6 @@ import ldp.example.com.ldpweather.util.Httputil;
 import okhttp3.Call;
 import okhttp3.Callback;
 import okhttp3.Response;
-import okhttp3.internal.Util;
 
 /**
  * @author Adminstrator
