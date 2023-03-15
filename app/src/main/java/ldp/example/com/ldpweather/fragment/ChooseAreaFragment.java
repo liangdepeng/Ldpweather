@@ -118,7 +118,7 @@ public class ChooseAreaFragment extends Fragment {
                         WeatherActivity activity = (WeatherActivity) getActivity();
                         activity.mDrawerLayout.closeDrawers();
                         activity.mSwipeRefreshLayout.setRefreshing(true);
-                        activity.requestWeather(mCountyName);
+                        activity.queryCityCode(mCountyName);
                     }
                 }
             }

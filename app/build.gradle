@@ -26,8 +26,8 @@ dependencies {
     androidTestImplementation 'androidx.test.ext:junit:1.1.1'
     androidTestImplementation 'androidx.test.espresso:espresso-core:3.1.0'
     implementation 'org.litepal.android:core:1.4.1'
-    implementation 'com.squareup.okhttp3:okhttp:3.7.0'
+    implementation 'com.squareup.okhttp3:okhttp:3.12.12'
     implementation 'com.google.code.gson:gson:2.8.2'
     implementation 'com.github.bumptech.glide:glide:3.8.0'
-    implementation files('libs/sdk_HeWeather_Public_Android_V2.0.jar')
+   // implementation files('libs/QWeather_Public_Android_V4.11.jar')
 }

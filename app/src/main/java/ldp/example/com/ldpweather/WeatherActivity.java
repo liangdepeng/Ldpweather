@@ -2,13 +2,17 @@ package ldp.example.com.ldpweather;
 
 import android.content.Intent;
 import android.content.SharedPreferences;
+import android.content.pm.PackageManager;
 import android.graphics.Color;
 import android.os.Build;
 import android.preference.PreferenceManager;
+
 import androidx.core.view.GravityCompat;
+import androidx.core.widget.NestedScrollView;
 import androidx.drawerlayout.widget.DrawerLayout;
 import androidx.swiperefreshlayout.widget.SwipeRefreshLayout;
 import androidx.appcompat.app.AppCompatActivity;
+
 import android.os.Bundle;
 import android.util.Log;
 import android.view.LayoutInflater;
@@ -21,8 +25,23 @@ import android.widget.TextView;
 import android.widget.Toast;
 
 import com.bumptech.glide.Glide;
+import com.qweather.sdk.bean.IndicesBean;
+import com.qweather.sdk.bean.air.AirNowBean;
+import com.qweather.sdk.bean.base.IndicesType;
+import com.qweather.sdk.bean.base.Lang;
+import com.qweather.sdk.bean.base.Range;
+import com.qweather.sdk.bean.geo.GeoBean;
+import com.qweather.sdk.bean.weather.WeatherDailyBean;
+import com.qweather.sdk.bean.weather.WeatherNowBean;
+import com.qweather.sdk.view.QWeather;
+
+import org.json.JSONArray;
+import org.json.JSONException;
+import org.json.JSONObject;
 
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
 
 
 import ldp.example.com.ldpweather.javaBean.DailyForecastBean;
@@ -38,7 +57,7 @@ import okhttp3.Response;
 public class WeatherActivity extends AppCompatActivity {
     public SwipeRefreshLayout mSwipeRefreshLayout;
     private String cityName;
-    private ScrollView Weatherlayout;
+    private NestedScrollView Weatherlayout;
     private TextView Title_city;
     private TextView mTitlie_updatetime;
     private TextView mDegretext;
@@ -55,6 +74,7 @@ public class WeatherActivity extends AppCompatActivity {
     private Button mSetting_btn;
     private String mcityName;
     private String mCityNames;
+    private SharedPreferences preferences;
 
 
     @Override
@@ -76,7 +96,7 @@ public class WeatherActivity extends AppCompatActivity {
          * 初始化各控件
          */
         mImageView = (ImageView) findViewById(R.id.back_imagine);
-        Weatherlayout = (ScrollView) findViewById(R.id.weather_addAll_layout);
+        Weatherlayout = (NestedScrollView) findViewById(R.id.weather_addAll_layout);
         Title_city = (TextView) findViewById(R.id.title_city);
         mTitlie_updatetime = (TextView) findViewById(R.id.title_updatetime);
         mDegretext = (TextView) findViewById(R.id.degree_text);
@@ -114,7 +134,7 @@ public class WeatherActivity extends AppCompatActivity {
         mSwipeRefreshLayout = (SwipeRefreshLayout) findViewById(R.id.updateWeather);
         mSwipeRefreshLayout.setColorSchemeResources(R.color.colorPrimaryDark);
 
-        SharedPreferences preferences = PreferenceManager.getDefaultSharedPreferences(this);
+        preferences = PreferenceManager.getDefaultSharedPreferences(this);
 
         String imagine_backgroud = preferences.getString("bing_pic", null);
         if (imagine_backgroud != null) {
@@ -123,27 +143,64 @@ public class WeatherActivity extends AppCompatActivity {
             loadBingyinPic();
         }
 
-        String weatherString = preferences.getString("weather", null);
+      //  String weatherString = preferences.getString("weather", null);
 
-        if (weatherString != null) {
-            HeWeather6Bean weather = AddressJsontoJava.handleWeatherResponse(weatherString);
-            cityName = weather.getBasic().getLocation();
-            showWeatherInfo(weather);
-        } else {
+//        if (weatherString != null) {
+//            HeWeather6Bean weather = AddressJsontoJava.handleWeatherResponse(weatherString);
+//            cityName = weather.getBasic().getLocation();
+//            queryCityCode(cityName);
+//           // showWeatherInfo(weather);
+//        } else {
             cityName = getIntent().getStringExtra("countyName");
             Weatherlayout.setVisibility(View.INVISIBLE);
-            requestWeather(cityName);
-        }
+            queryCityCode(cityName);
+//        }
+        preferences.edit().putString("local_city",cityName).apply();
+
+        PreferenceManager.getDefaultSharedPreferences(this);
 
         mSwipeRefreshLayout.setOnRefreshListener(
                 new SwipeRefreshLayout.OnRefreshListener() {
+                    @Override
+                    public void onRefresh() {
+                        /**
+                         *刷新当前页面城市天气
+                         */
+                        System.out.println("刷新时 ： " + mCityNames);
+                        queryCityCode(mCityNames);
+                    }
+                });
+    }
+
+    public void queryCityCode(String countyName) {
+
+        preferences.edit().putString("local_city",countyName).apply();
+
+        QWeather.getGeoCityLookup(this, countyName, Range.CN, 10, Lang.ZH_HANS, new QWeather.OnResultGeoListener() {
             @Override
-            public void onRefresh() {
-                /**
-                 *刷新当前页面城市天气
-                 */
-                System.out.println("刷新时 ： " + mCityNames);
-                requestWeather(mCityNames);
+            public void onError(Throwable throwable) {
+                Toast.makeText(WeatherActivity.this, throwable.getMessage(), Toast.LENGTH_SHORT).show();
+            }
+
+            @Override
+            public void onSuccess(GeoBean geoBean) {
+                if (geoBean == null) {
+                    return;
+                }
+                List<GeoBean.LocationBean> list = geoBean.getLocationBean();
+                if (list == null || list.size() == 0) {
+                    return;
+                }
+                final GeoBean.LocationBean bean = list.get(0);
+                String locationId = bean.getId();
+                requestWeather(locationId);
+                runOnUiThread(new Runnable() {
+                    @Override
+                    public void run() {
+                        mCityNames = bean.getName();
+                        Title_city.setText(mCityNames);
+                    }
+                });
             }
         });
     }
@@ -151,50 +208,172 @@ public class WeatherActivity extends AppCompatActivity {
     /**
      * 根据id请求城市天气信息
      *
-     * @param countyName address
+     * @param countyId address
      */
-    public void requestWeather(final String countyName) {
+    public void requestWeather(final String countyId) {
 
-        //        String weather_url = "https://free-api.heweather.com/s6/weather?location="
-        //                + wetherId + "&7f38cf5c1c614163991cfecccfa65d0d";
-
-        String weather_url =  "https://free-api.heweather.com/s6/weather?location=" + countyName + "&key=e213b21d1a25491ba625ce3d3d5dfc2d";
-
-        Httputil.sendOkhttpRequest(weather_url, new Callback() {
+        QWeather.getWeatherNow(WeatherActivity.this, countyId, new QWeather.OnResultWeatherNowListener() {
             @Override
-            public void onFailure(Call call, IOException e) {
+            public void onError(Throwable throwable) {
                 runOnUiThread(new Runnable() {
                     @Override
                     public void run() {
-                        Toast.makeText(WeatherActivity.this, "获取信息失败122", Toast.LENGTH_SHORT).show();
                         mSwipeRefreshLayout.setRefreshing(false);
                     }
                 });
             }
 
             @Override
-            public void onResponse(Call call, Response response) throws IOException {
-                System.out.println("获取json数据");
-                final String responseText = response.body().string();
-                final HeWeather6Bean weather = AddressJsontoJava.handleWeatherResponse(responseText);
-                System.out.println(responseText);
+            public void onSuccess(final WeatherNowBean weatherNowBean) {
+                if (weatherNowBean==null||weatherNowBean.getNow()==null)
+                    return;
                 runOnUiThread(new Runnable() {
                     @Override
                     public void run() {
-                        if (weather != null && "ok".equals(weather.getStatus())) {
-                            Log.d("x",weather.getStatus());
-                            SharedPreferences.Editor editor = PreferenceManager.getDefaultSharedPreferences(WeatherActivity.this).edit();
-                            editor.putString("weather", responseText);
-                            editor.apply();
-                            showWeatherInfo(weather);
-                        } else {
-                            Toast.makeText(WeatherActivity.this, "获取天气信息失败233", Toast.LENGTH_SHORT).show();
-                        }
+                      //  mTitlie_updatetime.setText(weatherNowBean.getNow().);
+                        mDegretext.setText(weatherNowBean.getNow().getTemp()+"℃");
+                        mWeatherInfo_text.setText(weatherNowBean.getNow().getText());
                         mSwipeRefreshLayout.setRefreshing(false);
                     }
                 });
             }
         });
+
+        QWeather.getWeather7D(this, countyId, new QWeather.OnResultWeatherDailyListener() {
+            @Override
+            public void onError(Throwable throwable) {
+
+            }
+
+            @Override
+            public void onSuccess(final WeatherDailyBean weatherDailyBean) {
+                if (weatherDailyBean==null||weatherDailyBean.getDaily()==null||weatherDailyBean.getDaily().size()==0)
+                    return;
+                runOnUiThread(new Runnable() {
+                    @Override
+                    public void run() {
+                        List<WeatherDailyBean.DailyBean> dailys = weatherDailyBean.getDaily();
+                        mForecast_linearlayout.removeAllViews();
+                        for (WeatherDailyBean.DailyBean bean:dailys){
+                            View view = LayoutInflater.from(WeatherActivity.this).inflate(R.layout.forecast_item,
+                                    mForecast_linearlayout, false);
+                            TextView dateText = (TextView) view.findViewById(R.id.date_text);
+                            TextView infoText = (TextView) view.findViewById(R.id.info_text);
+                            TextView maxText = (TextView) view.findViewById(R.id.max_text);
+                            TextView minText = (TextView) view.findViewById(R.id.min_text);
+                            dateText.setText(bean.getFxDate());
+                            /**
+                             * 判断白天和夜间天气是否相同，如果相同，则只显示一个即可
+                             */
+                    if ((bean.getTextDay()).equals(bean.getTextNight())) {
+                        infoText.setText(bean.getTextDay());
+                    } else {
+                        infoText.setText(bean.getTextDay() + "转" + bean.getTextNight());
+                    }
+                    maxText.setText(bean.getTempMax() + "℃");
+                    minText.setText(bean.getTempMin() + "℃");
+                    mForecast_linearlayout.addView(view);
+                        }
+                    }
+                });
+
+            }
+        });
+
+        List<IndicesType> indicesTypes = new ArrayList<>();
+        indicesTypes.add(IndicesType.ALL);
+        QWeather.getIndices1D(this, countyId, Lang.ZH_HANS, indicesTypes, new QWeather.OnResultIndicesListener() {
+            @Override
+            public void onError(Throwable throwable) {
+
+            }
+
+            @Override
+            public void onSuccess(final IndicesBean indicesBean) {
+                if (indicesBean==null||indicesBean.getDailyList()==null||indicesBean.getDailyList().size()==0){
+                    return;
+                }
+                runOnUiThread(new Runnable() {
+                    @Override
+                    public void run() {
+                        List<IndicesBean.DailyBean> dailyList = indicesBean.getDailyList();
+                        mLife_text.removeAllViews();
+                        for (IndicesBean.DailyBean dailyBean:dailyList){
+                            View view = LayoutInflater.from(WeatherActivity.this).inflate(R.layout.lifestylelayout,
+                                    mLife_text, false);
+                            TextView lifestyle_tltle = (TextView) view.findViewById(R.id.lifestyle_title);
+                            TextView lifestyle_text = (TextView) view.findViewById(R.id.lifestyle_text);
+                            lifestyle_tltle.setText(dailyBean.getName());
+                            lifestyle_text.setText(dailyBean.getText());
+                            mLife_text.addView(view);
+                        }
+                    }
+                });
+            }
+        });
+
+
+        QWeather.getAirNow(this, countyId, Lang.ZH_HANS, new QWeather.OnResultAirNowListener() {
+            @Override
+            public void onError(Throwable throwable) {
+
+            }
+
+            @Override
+            public void onSuccess(final AirNowBean airNowBean) {
+                //showWeatherInfo();
+                runOnUiThread(new Runnable() {
+                    @Override
+                    public void run() {
+                        mAqi_text.setText(airNowBean.getNow().getAqi());
+                        mPm_25.setText(airNowBean.getNow().getPm2p5());
+                        Weatherlayout.setVisibility(View.VISIBLE);
+                    }
+                });
+            }
+        });
+
+        //        String weather_url = "https://free-api.heweather.com/s6/weather?location="
+        //                + wetherId + "&7f38cf5c1c614163991cfecccfa65d0d";
+//
+//        String weather_url = "https://devapi.qweather.com/v7/weather?location=" + countyId + "&key=e213b21d1a25491ba625ce3d3d5dfc2d";
+//
+//
+//        Httputil.sendOkhttpRequest(weather_url, new Callback() {
+//            @Override
+//            public void onFailure(Call call, IOException e) {
+//                runOnUiThread(new Runnable() {
+//                    @Override
+//                    public void run() {
+//                        Toast.makeText(WeatherActivity.this, "获取信息失败122", Toast.LENGTH_SHORT).show();
+//                        mSwipeRefreshLayout.setRefreshing(false);
+//                    }
+//                });
+//            }
+//
+//            @Override
+//            public void onResponse(Call call, Response response) throws IOException {
+//                System.out.println("获取json数据");
+//                final String responseText = response.body().string();
+//                final HeWeather6Bean weather = AddressJsontoJava.handleWeatherResponse(responseText);
+//                System.out.println(responseText);
+//                runOnUiThread(new Runnable() {
+//                    @Override
+//                    public void run() {
+//                        if (weather != null && "ok".equals(weather.getStatus())) {
+//                            Log.d("x", weather.getStatus());
+//                            SharedPreferences.Editor editor = PreferenceManager.getDefaultSharedPreferences(WeatherActivity.this).edit();
+//                            editor.putString("weather", responseText);
+//                            editor.apply();
+//                          //  showWeatherInfo(weather);
+//                        } else {
+//                            Toast.makeText(WeatherActivity.this, "获取天气信息失败233", Toast.LENGTH_SHORT).show();
+//                        }
+//                        mSwipeRefreshLayout.setRefreshing(false);
+//                    }
+//                });
+//            }
+//        });
         loadBingyinPic();
     }
 
@@ -220,12 +399,12 @@ public class WeatherActivity extends AppCompatActivity {
          *
          * 解决 重新加载 之后数据叠加问题
          */
-        mForecast_linearlayout.removeAllViews();
+      //  mForecast_linearlayout.removeAllViews();
         mHourdailyforecast.removeAllViews();
-        mLife_text.removeAllViews();
+      //  mLife_text.removeAllViews();
 
-        mAqi_text.setText(weather.getNow().getPcpn());
-        mPm_25.setText(weather.getNow().getWind_dir());
+//        mAqi_text.setText(weather.getNow().getPcpn());
+//        mPm_25.setText(weather.getNow().getWind_dir());
 
 //        /**
 //         * 显示未来3天天气信息
@@ -241,42 +420,42 @@ public class WeatherActivity extends AppCompatActivity {
 //            dailyforecastTemp.setText(hourForecast.getTemp() + "°");
 //            mHourdailyforecast.addView(view);
 //        }
-        /**
-         * 显示3天天气信息
-         */
-        for (DailyForecastBean forecast : weather.getDaily_forecast()) {
-            View view = LayoutInflater.from(this).inflate(R.layout.forecast_item,
-                    mForecast_linearlayout, false);
-            TextView dateText = (TextView) view.findViewById(R.id.date_text);
-            TextView infoText = (TextView) view.findViewById(R.id.info_text);
-            TextView maxText = (TextView) view.findViewById(R.id.max_text);
-            TextView minText = (TextView) view.findViewById(R.id.min_text);
-            dateText.setText(forecast.getDate());
-            /**
-             * 判断白天和夜间天气是否相同，如果相同，则只显示一个即可
-             */
-            if ((forecast.getCond_code_d()).equals(forecast.getCond_code_n())){
-                infoText.setText(forecast.getCond_txt_n());
-            }else {
-                infoText.setText(forecast.getCond_txt_d() + "转" + forecast.getCond_txt_n());
-            }
-            maxText.setText(forecast.getTmp_min()+ "°");
-            minText.setText(forecast.getTmp_max()+ "°");
-            mForecast_linearlayout.addView(view);
-        }
-
-        /**
-         * 显示生活建议
-         */
-        for (LifestyleBean lifestyle : weather.getLifestyle()) {
-            View view = LayoutInflater.from(this).inflate(R.layout.lifestylelayout,
-                    mLife_text, false);
-            TextView lifestyle_tltle = (TextView) view.findViewById(R.id.lifestyle_title);
-            TextView lifestyle_text = (TextView) view.findViewById(R.id.lifestyle_text);
-            lifestyle_tltle.setText(chooseTitle(lifestyle.getType()));
-            lifestyle_text.setText(lifestyle.getTxt());
-            mLife_text.addView(view);
-        }
+//        /**
+//         * 显示3天天气信息
+//         */
+//        for (DailyForecastBean forecast : weather.getDaily_forecast()) {
+//            View view = LayoutInflater.from(this).inflate(R.layout.forecast_item,
+//                    mForecast_linearlayout, false);
+//            TextView dateText = (TextView) view.findViewById(R.id.date_text);
+//            TextView infoText = (TextView) view.findViewById(R.id.info_text);
+//            TextView maxText = (TextView) view.findViewById(R.id.max_text);
+//            TextView minText = (TextView) view.findViewById(R.id.min_text);
+//            dateText.setText(forecast.getDate());
+//            /**
+//             * 判断白天和夜间天气是否相同，如果相同，则只显示一个即可
+//             */
+//            if ((forecast.getCond_code_d()).equals(forecast.getCond_code_n())) {
+//                infoText.setText(forecast.getCond_txt_n());
+//            } else {
+//                infoText.setText(forecast.getCond_txt_d() + "转" + forecast.getCond_txt_n());
+//            }
+//            maxText.setText(forecast.getTmp_min() + "°");
+//            minText.setText(forecast.getTmp_max() + "°");
+//            mForecast_linearlayout.addView(view);
+//        }
+//
+//        /**
+//         * 显示生活建议
+//         */
+//        for (LifestyleBean lifestyle : weather.getLifestyle()) {
+//            View view = LayoutInflater.from(this).inflate(R.layout.lifestylelayout,
+//                    mLife_text, false);
+//            TextView lifestyle_tltle = (TextView) view.findViewById(R.id.lifestyle_title);
+//            TextView lifestyle_text = (TextView) view.findViewById(R.id.lifestyle_text);
+//            lifestyle_tltle.setText(chooseTitle(lifestyle.getType()));
+//            lifestyle_text.setText(lifestyle.getTxt());
+//            mLife_text.addView(view);
+//        }
         Weatherlayout.setVisibility(View.VISIBLE);
         Intent intent = new Intent(this, AutoUpdateservice.class);
         startService(intent);
@@ -287,7 +466,7 @@ public class WeatherActivity extends AppCompatActivity {
      * 加载网络图片......
      */
     private void loadBingyinPic() {
-        String resquestBingyinPic = "http://guolin.tech/api/bing_pic";
+        String resquestBingyinPic = "https://www.bing.com/HPImageArchive.aspx?format=js&idx=0&n=1";
         Httputil.sendOkhttpRequest(resquestBingyinPic, new Callback() {
             @Override
             public void onFailure(Call call, IOException e) {
@@ -297,18 +476,27 @@ public class WeatherActivity extends AppCompatActivity {
             @Override
             public void onResponse(Call call, Response response) throws IOException {
                 final String bingPic = response.body().string();
-                SharedPreferences.Editor editor = PreferenceManager.
-                        getDefaultSharedPreferences(WeatherActivity.this).edit();
-                editor.putString("bing_pic", bingPic);
-                editor.apply();
-                runOnUiThread(new Runnable() {
-                    @Override
-                    public void run() {
-                        Glide.with(WeatherActivity.this)
-                                .load(bingPic)
-                                .into(mBaxkgroud_imagine);
-                    }
-                });
+                try {
+                    JSONObject jsonObject = new JSONObject(bingPic);
+                    JSONArray jsonArray = jsonObject.getJSONArray("images");
+                    JSONObject json = jsonArray.getJSONObject(0);
+                    final String url = "https://www.bing.com"+json.getString("url");
+
+                    runOnUiThread(new Runnable() {
+                        @Override
+                        public void run() {
+                            Glide.with(WeatherActivity.this)
+                                    .load(url)
+                                    .into(mBaxkgroud_imagine);
+                            preferences.edit().putString("bing_pic", url).apply();
+                        }
+                    });
+
+                } catch (JSONException e) {
+                    e.printStackTrace();
+                }
+
+
             }
         });
     }
