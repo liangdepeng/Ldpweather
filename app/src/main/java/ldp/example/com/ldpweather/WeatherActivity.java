@@ -14,6 +14,7 @@ import androidx.swiperefreshlayout.widget.SwipeRefreshLayout;
 import androidx.appcompat.app.AppCompatActivity;
 
 import android.os.Bundle;
+import android.text.TextUtils;
 import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -57,6 +58,7 @@ import okhttp3.Response;
 public class WeatherActivity extends AppCompatActivity {
     public SwipeRefreshLayout mSwipeRefreshLayout;
     private String cityName;
+    private String locationId;
     private NestedScrollView Weatherlayout;
     private TextView Title_city;
     private TextView mTitlie_updatetime;
@@ -152,6 +154,7 @@ public class WeatherActivity extends AppCompatActivity {
 //           // showWeatherInfo(weather);
 //        } else {
             cityName = getIntent().getStringExtra("countyName");
+            locationId = getIntent().getStringExtra("locationId");
             Weatherlayout.setVisibility(View.INVISIBLE);
             queryCityCode(cityName);
 //        }
@@ -173,8 +176,14 @@ public class WeatherActivity extends AppCompatActivity {
     }
 
     public void queryCityCode(String countyName) {
+        if (!TextUtils.isEmpty(locationId)){
+            mCityNames = countyName;
+            Title_city.setText(mCityNames);
+            requestWeather(locationId);
+            return;
+        }
 
-        preferences.edit().putString("local_city",countyName).apply();
+       // preferences.edit().putString("local_city",countyName).apply();
 
         QWeather.getGeoCityLookup(this, countyName, Range.CN, 10, Lang.ZH_HANS, new QWeather.OnResultGeoListener() {
             @Override
